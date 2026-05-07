@@ -19,6 +19,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const startedAt = Date.now();
     // ── STEP 1: Fetch all Birdeye data in parallel ──────────────────────────
     console.log(`[Rug Sentinel] Fetching data for ${tokenAddress}`);
     const rawData = await fetchAllTokenData(tokenAddress, BIRDEYE_KEY);
@@ -37,10 +38,12 @@ export default async function handler(req, res) {
       mediumSignals: analysis.signals.filter(s => s.severity === 'MEDIUM').map(s => s.finding),
       greenFlags: analysis.greenFlags,
       metrics: {
+        createdAt: analysis.metrics.createdAt,
         tokenAgeHours: analysis.metrics.tokenAgeHours,
         totalHolders: analysis.metrics.totalHolders,
         top3HolderPercent: analysis.metrics.top3HolderPercent,
         liquidity: analysis.metrics.liquidity,
+        logo: analysis.metrics.logo,
         mintAuthorityEnabled: analysis.metrics.mintAuthorityEnabled,
         freezeAuthorityEnabled: analysis.metrics.freezeAuthorityEnabled,
         washTradingWallets: analysis.metrics.washTradingWallets,
@@ -132,6 +135,7 @@ Use direct, plain language. Sound like someone who has lost money before and doe
       aiReport,
       aiError,
       dataErrors: rawData.errors,
+      analysisTimeMs: Date.now() - startedAt,
       analyzedAt: new Date().toISOString(),
     });
 

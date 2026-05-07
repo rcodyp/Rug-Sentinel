@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rug Sentinel Terminal Dashboard</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --green: #00ff88;
+      --red: #ff2244;
+      --amber: #ffb347;
+      --muted: #8aa39a;
+      --panel: #060606;
+      --line: #1a1a1a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Consolas", "Courier New", monospace;
+      background: var(--bg);
+      color: #d9fff0;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.02) 0px,
+        rgba(255,255,255,0.02) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+    }
+    .dashboard {
+      height: 100vh;
+      padding: 12px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 10px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 12px var(--red);
+      animation: pulse 1.2s infinite;
+    }
+    .title { font-weight: 900; letter-spacing: 2px; font-size: 20px; }
+    .tagline { color: var(--muted); font-size: 12px; letter-spacing: 1px; }
+    .status {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .pill {
+      border: 1px solid #173126;
+      color: var(--green);
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.2s infinite;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .stat-title { color: var(--muted); font-size: 11px; letter-spacing: 1px; }
+    .stat-value { color: var(--green); font-size: 28px; font-weight: 800; margin-top: 4px; }
+    .vol-warn { color: var(--red); animation: blink 0.9s step-end infinite; }
+    .main-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 1fr;
+      gap: 10px;
+    }
+    .section-title {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cursor { animation: blink 1s step-end infinite; color: var(--green); }
+    .threat-list {
+      max-height: calc(100vh - 335px);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+    }
+    .threat-row {
+      border: 1px solid #132018;
+      border-radius: 6px;
+      padding: 8px;
+      transition: all .2s ease;
+      cursor: pointer;
+    }
+    .threat-row:hover {
+      border-color: var(--red);
+      box-shadow: 0 0 14px rgba(255,34,68,.35);
+    }
+    .row-top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+    .risk-bar-bg { height: 7px; border-radius: 99px; background: #101010; overflow: hidden; }
+    .risk-bar { height: 100%; border-radius: 99px; transition: width .45s ease; }
+    .row-meta {
+      margin-top: 5px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .badge { padding: 2px 6px; border-radius: 99px; font-size: 10px; font-weight: bold; }
+    .chart-wrap {
+      height: calc(100vh - 335px);
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      align-items: end;
+      gap: 7px;
+      padding: 8px 2px 0;
+    }
+    .bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bar {
+      width: 100%;
+      border-radius: 4px;
+      min-height: 8px;
+      transform-origin: bottom;
+      animation: grow .6s ease forwards;
+    }
+    .bar-label { font-size: 10px; color: var(--muted); }
+    .ai-card { line-height: 1.6; font-size: 12px; color: #cbf7e7; }
+    .ai-metric { display: flex; justify-content: space-between; border-bottom: 1px dashed #14241d; padding: 6px 0; }
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .big {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .alert-log {
+      height: 132px;
+      overflow: auto;
+      color: #ff6b80;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .sparkline {
+      width: 100%;
+      height: 90px;
+      border: 1px solid #14241d;
+      border-radius: 6px;
+      margin-top: 8px;
+      background: #030303;
+    }
+    .scan-btn {
+      margin-top: 8px;
+      border: 1px solid var(--red);
+      background: transparent;
+      color: var(--red);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+    .scan-btn:hover { box-shadow: 0 0 12px rgba(255,34,68,.35); }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(560px, 92vw);
+      background: #050505;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 16px;
+      color: #dcfff1;
+    }
+    .progress {
+      margin: 10px 0 12px;
+      height: 10px;
+      border-radius: 99px;
+      background: #111;
+      overflow: hidden;
+    }
+    .progress > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--red), var(--green));
+      transition: width .3s ease;
+    }
+    .checklist { list-style: none; padding: 0; margin: 0; font-size: 12px; }
+    .checklist li { padding: 5px 0; color: var(--muted); }
+    .checklist li.done { color: var(--green); }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: .5; }
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="panel header">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="title">RUG SENTINEL</div>
+          <div class="tagline">ONCHAIN RISK INTELLIGENCE</div>
+        </div>
+      </div>
+      <div class="status">
+        <div class="pill"><span>SOLANA</span><span class="pill-dot"></span><span>LIVE</span></div>
+        <div class="pill"><span>BIRDEYE</span><span class="pill-dot"></span><span>LIVE</span></div>
+        <div class="pill"><span>GEMINI AI</span><span class="pill-dot"></span><span>LIVE</span></div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="panel"><div class="stat-title">LIVE TRENDING COINS</div><div id="trendCount" class="stat-value">0</div></div>
+      <div class="panel"><div class="stat-title">24H TOTAL VOLUME</div><div id="volume" class="stat-value">$0.00M</div></div>
+      <div class="panel"><div class="stat-title">HIGH VOLATILITY TOKENS</div><div id="volatile" class="stat-value vol-warn">0</div></div>
+      <div class="panel"><div class="stat-title">TOTAL LIQUIDITY</div><div id="liquidity" class="stat-value">$0.00M</div></div>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel">
+        <div class="section-title"><span>THREAT FEED</span><span>LIVE<span class="cursor">█</span></span></div>
+        <div id="threatFeed" class="threat-list"></div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><span>LIVE MOMENTUM CHART</span><span>24H Δ</span></div>
+        <div id="momentumChart" class="chart-wrap"></div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><span>AI ANALYST REPORT</span><span>GEMINI</span></div>
+        <div id="aiReport" class="ai-card"></div>
+        <button id="scanBtn" class="scan-btn">SCAN TOKEN</button>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="panel">
+        <div class="section-title"><span>MARKET SNAPSHOT</span><span>LIVE<span class="cursor">█</span></span></div>
+        <div>TOP GAINER</div>
+        <div id="gainer" class="big" style="color:var(--green)">--</div>
+        <div style="margin-top:6px;">TOP LOSER</div>
+        <div id="loser" class="big" style="color:var(--red)">--</div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><span>LIVE PULSE</span><span id="pulseName">--</span></div>
+        <div id="pulsePrice" style="font-size:24px;color:var(--green);font-weight:800;">$0.0000</div>
+        <svg id="sparkline" class="sparkline" viewBox="0 0 320 90" preserveAspectRatio="none">
+          <path id="sparkPath" d="" fill="none" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round"></path>
+        </svg>
+      </div>
+      <div class="panel">
+        <div class="section-title"><span>ALERT LOG</span><span>TERMINAL</span></div>
+        <div id="alertLog" class="alert-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scanModal" class="modal">
+    <div class="modal-card">
+      <div style="font-size:16px;font-weight:800;color:#ff7d93;">DEEP SCAN ENGINE</div>
+      <div style="font-size:12px;color:#8aa39a;margin-top:4px;">Inspecting token attack surface...</div>
+      <div class="progress"><div id="scanProgress"></div></div>
+      <ul id="scanChecklist" class="checklist">
+        <li>Authority ownership graph scan</li>
+        <li>Liquidity lock contract verification</li>
+        <li>Whale clustering simulation</li>
+        <li>Dev wallet cashout pattern check</li>
+        <li>Cross-DEX volume anomaly correlation</li>
+      </ul>
+      <button id="closeModal" class="scan-btn" style="margin-top:12px;">CLOSE</button>
+    </div>
+  </div>
+
+  <script>
+    const TOKENS = ["FOMO","WIFX","RUGX","BONK2","SOLPEPE","VOID","HYPE","LUNAQ","AXIS","MOONR","MANTA","NEON"];
+    const state = { feed: [], alerts: [], pulseIdx: 0 };
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    function rint(min, max) { return Math.floor(rand(min, max + 1)); }
+    function fmtM(v) { return `$${v.toFixed(2)}M`; }
+    function scoreColor(score) { return score < 30 ? "#00ff88" : score < 70 ? "#ffb347" : "#ff2244"; }
+    function badge(score) { return score < 30 ? "SAFE" : score < 70 ? "CAUTION" : "RUG RISK"; }
+    function now() {
+      const d = new Date();
+      return `[${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}]`;
+    }
+
+    function generateFeed() {
+      state.feed = TOKENS.map(name => {
+        const score = rint(8, 96);
+        return {
+          name: `$${name}`,
+          score,
+          liquidity: rand(1.2, 95),
+          change: rand(-22, 28),
+          price: rand(0.0001, 2.4)
+        };
+      }).sort((a,b) => b.score - a.score);
+    }
+
+    function updateStats() {
+      const trendCount = rint(18, 42);
+      const volume = rand(24, 260);
+      const volatile = state.feed.filter(t => Math.abs(t.change) > 11).length;
+      const liquidity = state.feed.reduce((s,t) => s + t.liquidity, 0);
+      document.getElementById("trendCount").textContent = trendCount;
+      document.getElementById("volume").textContent = fmtM(volume);
+      document.getElementById("volatile").textContent = volatile;
+      document.getElementById("liquidity").textContent = fmtM(liquidity);
+      document.getElementById("volatile").className = "stat-value" + (volatile > 0 ? " vol-warn" : "");
+    }
+
+    function renderThreatFeed() {
+      const wrap = document.getElementById("threatFeed");
+      wrap.innerHTML = "";
+      state.feed.slice(0, 11).forEach(t => {
+        const color = scoreColor(t.score);
+        const item = document.createElement("div");
+        item.className = "threat-row";
+        item.innerHTML = `
+          <div class="row-top">
+            <span>${t.name}</span>
+            <span style="color:${color};font-weight:800">${t.score}/100</span>
+          </div>
+          <div class="risk-bar-bg"><div class="risk-bar" style="width:${t.score}%;background:${color}"></div></div>
+          <div class="row-meta">
+            <span>LIQ ${fmtM(t.liquidity)}</span>
+            <span class="badge" style="color:#000;background:${color}">${badge(t.score)}</span>
+          </div>
+        `;
+        wrap.appendChild(item);
+      });
+    }
+
+    function renderMomentum() {
+      const wrap = document.getElementById("momentumChart");
+      wrap.innerHTML = "";
+      state.feed.slice(0, 8).forEach(t => {
+        const col = document.createElement("div");
+        const h = Math.min(100, Math.max(10, Math.abs(t.change) * 3.2));
+        const up = t.change >= 0;
+        col.className = "bar-col";
+        col.innerHTML = `
+          <div class="bar" style="height:${h}%;background:${up ? "#00ff88" : "#ff2244"}"></div>
+          <div class="bar-label">${t.name.replace("$","")}</div>
+        `;
+        wrap.appendChild(col);
+      });
+    }
+
+    function renderAIReport() {
+      const top = state.feed[0];
+      if (!top) return;
+      const lock = rint(8, 96);
+      const whale = rint(20, 93);
+      const dev = rint(1, 24);
+      const audit = rint(0, 100);
+      const verdict = top.score < 30 ? "SAFE" : top.score < 70 ? "CAUTION" : "DANGER";
+      const vColor = verdict === "SAFE" ? "#00ff88" : verdict === "CAUTION" ? "#ffb347" : "#ff2244";
+      document.getElementById("aiReport").innerHTML = `
+        <div style="margin-bottom:6px;">Primary token under surveillance: <span style="color:#00ff88">${top.name}</span></div>
+        <div class="ai-metric"><span>Liquidity Lock</span><span>${lock}%</span></div>
+        <div class="ai-metric"><span>Whale Concentration</span><span>${whale}%</span></div>
+        <div class="ai-metric"><span>Dev Wallet Activity</span><span>${dev} tx/h</span></div>
+        <div class="ai-metric"><span>Contract Audit Signal</span><span>${audit}/100</span></div>
+        <div style="margin-top:10px;">
+          <span class="badge" style="font-size:12px;color:#000;background:${vColor}">${verdict}</span>
+        </div>
+      `;
+    }
+
+    function renderBottom() {
+      const sorted = [...state.feed].sort((a,b) => b.change - a.change);
+      const g = sorted[0], l = sorted[sorted.length - 1];
+      document.getElementById("gainer").textContent = `${g.name} +${g.change.toFixed(2)}%`;
+      document.getElementById("loser").textContent = `${l.name} ${l.change.toFixed(2)}%`;
+
+      state.pulseIdx = (state.pulseIdx + 1) % state.feed.length;
+      const p = state.feed[state.pulseIdx];
+      document.getElementById("pulseName").textContent = p.name;
+      document.getElementById("pulsePrice").textContent = `$${p.price.toFixed(6)}`;
+      const points = Array.from({ length: 22 }, (_, i) => {
+        const x = (i / 21) * 320;
+        const y = 55 + Math.sin(i / 2.2 + performance.now() / 700) * 18 + rand(-5, 5);
+        return `${x},${y}`;
+      }).join(" ");
+      document.getElementById("sparkPath").setAttribute("d", `M ${points}`);
+    }
+
+    function addAlert() {
+      const t = state.feed[rint(0, state.feed.length - 1)];
+      const incidents = [
+        "Liquidity removed 94%",
+        "Mint authority re-enabled",
+        "Whale dumped 31% supply",
+        "Suspicious dev wallet transfers",
+        "LP unlock detected early"
+      ];
+      state.alerts.unshift(`${now()} ⚠ ${t.name} — ${incidents[rint(0, incidents.length - 1)]}`);
+      state.alerts = state.alerts.slice(0, 14);
+      document.getElementById("alertLog").innerHTML = state.alerts.map(a => `<div>${a}</div>`).join("");
+    }
+
+    function tick() {
+      generateFeed();
+      updateStats();
+      renderThreatFeed();
+      renderMomentum();
+      renderAIReport();
+      renderBottom();
+      addAlert();
+      setTimeout(tick, rint(3000, 5000));
+    }
+
+    function runScanModal() {
+      const modal = document.getElementById("scanModal");
+      const progress = document.getElementById("scanProgress");
+      const items = [...document.querySelectorAll("#scanChecklist li")];
+      modal.classList.add("open");
+      progress.style.width = "0%";
+      items.forEach(i => i.classList.remove("done"));
+      let idx = 0;
+      const scan = setInterval(() => {
+        idx++;
+        progress.style.width = `${Math.min(100, idx * 20)}%`;
+        if (items[idx - 1]) {
+          items[idx - 1].classList.add("done");
+          items[idx - 1].textContent = `✓ ${items[idx - 1].textContent.replace("✓ ","")}`;
+        }
+        if (idx >= 5) clearInterval(scan);
+      }, 700);
+    }
+
+    document.getElementById("scanBtn").addEventListener("click", runScanModal);
+    document.getElementById("closeModal").addEventListener("click", () => {
+      document.getElementById("scanModal").classList.remove("open");
+    });
+    document.getElementById("scanModal").addEventListener("click", (e) => {
+      if (e.target.id === "scanModal") e.currentTarget.classList.remove("open");
+    });
+
+    tick();
+  </script>
+</body>
+</html>
