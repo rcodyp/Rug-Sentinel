@@ -12,7 +12,8 @@ export default async function handler(req, res) {
   }
 
   const BIRDEYE_KEY = process.env.BIRDEYE_API_KEY;
-  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
+  const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
   if (!BIRDEYE_KEY) {
     return res.status(500).json({ error: 'BIRDEYE_API_KEY not configured' });
@@ -50,11 +51,11 @@ export default async function handler(req, res) {
       }
     };
 
-    // ── STEP 4: Call Gemini to write human analyst report ───────────────────
+    // ── STEP 4: Call ChatGPT to write human analyst report ──────────────────
     let aiReport = null;
     let aiError = null;
 
-    if (GEMINI_KEY) {
+    if (OPENAI_KEY) {
       try {
         const prompt = `You are a battle-hardened onchain analyst who has seen hundreds of rug pulls. You have zero patience for sugar-coating. You write short, punchy risk reports that traders actually read.
 
@@ -93,33 +94,38 @@ RECOMMENDATION: One punchy final sentence. Be specific about what to do.
 
 Use direct, plain language. Sound like someone who has lost money before and doesn't want others to. No corporate speak, no hedging, no "it's important to note that".`;
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 300,
-              }
-            })
-          }
-        );
+        const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${OPENAI_KEY}`,
+          },
+          body: JSON.stringify({
+            model: OPENAI_MODEL,
+            temperature: 0.7,
+            max_tokens: 300,
+            messages: [
+              { role: 'system', content: 'You are an expert onchain risk analyst focused on Solana rug pulls.' },
+              { role: 'user', content: prompt },
+            ],
+          }),
+        });
 
-        const geminiData = await geminiRes.json();
-        console.log('Gemini response:', geminiData);
-        aiReport = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-        if (!aiReport && geminiData?.error) {
-          aiError = geminiData.error.message;
+        const openAIData = await openAIRes.json();
+        console.log('OpenAI response:', openAIData);
+        aiReport = openAIData?.choices?.[0]?.message?.content?.trim() || null;
+
+        if (!openAIRes.ok) {
+          aiError = openAIData?.error?.message || `OpenAI request failed (${openAIRes.status})`;
+        } else if (!aiReport) {
+          aiError = 'OpenAI returned an empty report';
         }
       } catch (err) {
         aiError = err.message;
-        console.error('[Rug Sentinel] Gemini error:', err);
+        console.error('[Rug Sentinel] OpenAI error:', err);
       }
     } else {
-      aiError = 'GEMINI_API_KEY not configured — add it to .env.local to enable AI reports';
+      aiError = 'OPENAI_API_KEY not configured — add it to .env.local to enable AI reports';
     }
 
     // ── STEP 5: Return full analysis ────────────────────────────────────────

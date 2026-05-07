@@ -23,6 +23,7 @@ export default function Home() {
   const [liveError, setLiveError] = useState(null);
   const [coinQuery, setCoinQuery] = useState('');
   const [pulseIndex, setPulseIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const resultRef = useRef(null);
 
   const stages = [
@@ -172,6 +173,14 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 900px)');
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
   function formatMoney(value) {
     if (!value) return '—';
     if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
@@ -255,7 +264,7 @@ export default function Home() {
             </span>
           </div>
           <div className="font-mono" style={{ fontSize: '0.6rem', color: '#4a5568', letterSpacing: '2px' }}>
-            SOLANA · BIRDEYE DATA · GEMINI AI
+            SOLANA · BIRDEYE DATA · CHATGPT AI
           </div>
         </header>
 
@@ -265,7 +274,7 @@ export default function Home() {
           <div style={{
             marginBottom: 12,
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.4fr) minmax(280px, 1fr)',
             gap: 12,
           }}>
             <div style={{ background: '#0d1117', border: '1px solid #1e2d3d', borderRadius: 6, padding: 16 }}>
@@ -288,6 +297,20 @@ export default function Home() {
               <p className="font-body" style={{ color: '#ac37ca', fontSize: '0.88rem', maxWidth: 700, lineHeight: 1.5 }}>
                 Live token streams, rapid risk scans, and AI analyst reports. Built to look active 24/7 during your hackathon demo.
               </p>
+              <div style={{
+                marginTop: 12,
+                background: 'rgba(255,124,30,0.08)',
+                border: '1px solid #ff7c1e55',
+                borderRadius: 6,
+                padding: '10px 12px',
+              }}>
+                <div className="font-mono" style={{ fontSize: '0.62rem', color: '#ff7c1e', letterSpacing: '1.5px' }}>
+                  AI RUG-PULL DETECTION ENGINE ACTIVE
+                </div>
+                <div className="font-mono" style={{ fontSize: '0.68rem', color: '#c9d1d9', marginTop: 6, lineHeight: 1.5 }}>
+                  Gemini AI + deterministic rules analyze wallet concentration, liquidity unlock risk, authority controls, wash trading, and suspicious volume behavior.
+                </div>
+              </div>
             </div>
             <div style={{ background: '#0d1117', border: '1px solid #1e2d3d', borderRadius: 6, padding: 16 }}>
               <div className="font-mono" style={{ fontSize: '0.58rem', color: '#4a5568', letterSpacing: '2px', marginBottom: 8 }}>
@@ -314,7 +337,7 @@ export default function Home() {
           <section style={{ marginBottom: 12 }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
               gap: 8,
             }}>
               {[
@@ -345,7 +368,7 @@ export default function Home() {
 
           <section style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
             gap: 8,
             marginBottom: 12,
           }}>
@@ -417,8 +440,8 @@ export default function Home() {
             <div className="font-mono" style={{ fontSize: '0.6rem', color: '#4a5568', letterSpacing: '2px', marginBottom: 12 }}>
               LIVE MARKET MOMENTUM CHART
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: 6, alignItems: 'end', minHeight: 120 }}>
-              {liveData.coins.slice(0, 12).map((coin) => {
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(6, minmax(0, 1fr))' : 'repeat(12, minmax(0, 1fr))', gap: 6, alignItems: 'end', minHeight: 120 }}>
+              {liveData.coins.slice(0, isMobile ? 6 : 12).map((coin) => {
                 const h = Math.max(8, Math.min(100, Math.abs(coin.change24h) * 5));
                 const up = coin.change24h >= 0;
                 return (
@@ -446,7 +469,7 @@ export default function Home() {
 
           <section style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.5fr) minmax(260px, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.5fr) minmax(260px, 1fr)',
             gap: 8,
             marginBottom: 12,
           }}>
@@ -487,14 +510,22 @@ export default function Home() {
           {/* Search */}
           <div className="terminal-border" style={{
             background: '#0d1117',
+            border: '1px solid #ff3c3c55',
             borderRadius: 6,
             padding: 14,
             marginBottom: 12,
+            position: 'sticky',
+            top: 62,
+            zIndex: 60,
+            boxShadow: '0 0 14px rgba(255,60,60,0.15)',
           }}>
-            <div className="font-mono" style={{ fontSize: '0.6rem', color: '#4a5568', letterSpacing: '2px', marginBottom: 12 }}>
-              TOKEN ADDRESS
+            <div className="font-mono" style={{ fontSize: '0.62rem', color: '#ff3c3c', letterSpacing: '2px', marginBottom: 8 }}>
+              AI COIN CHECKER (PASTE TOKEN TO DETECT RUG RISK)
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto auto auto', gap: 8 }}>
+            <div className="font-mono" style={{ fontSize: '0.58rem', color: '#4a5568', letterSpacing: '1px', marginBottom: 12 }}>
+              Instant AI verdict + risk score + signals breakdown
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0,1fr) 1fr' : 'minmax(0,1fr) auto auto auto', gap: 8 }}>
               <input
                 type="text"
                 value={address}
@@ -681,7 +712,7 @@ export default function Home() {
                     borderRadius: 6,
                     padding: '10px 12px',
                     display: 'grid',
-                    gridTemplateColumns: '1fr auto auto auto',
+                    gridTemplateColumns: isMobile ? '1fr auto' : '1fr auto auto auto',
                     gap: 12,
                     alignItems: 'center',
                     cursor: 'pointer',
@@ -703,29 +734,33 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                  <div className="font-mono" style={{ color: '#4a5568', fontSize: '0.62rem' }}>
-                    {formatRelativeTime(coin.createdAt)}
-                  </div>
+                  {!isMobile && (
+                    <div className="font-mono" style={{ color: '#4a5568', fontSize: '0.62rem' }}>
+                      {formatRelativeTime(coin.createdAt)}
+                    </div>
+                  )}
                   <div className="font-mono" style={{ color: '#c9d1d9', fontSize: '0.75rem' }}>
                     {formatMoney(coin.price)}
-                    <div style={{ marginTop: 6, display: 'flex', gap: 2 }}>
-                      {[...Array(12)].map((_, i) => {
-                        const seed = (Math.abs(coin.change24h) * 7 + i * 3 + pulseIndex) % 10;
-                        const level = 3 + seed;
-                        return (
-                          <span
-                            key={`${coin.address}-spark-${i}`}
-                            style={{
-                              width: 3,
-                              height: level,
-                              borderRadius: 2,
-                              background: coin.change24h >= 0 ? '#00e67688' : '#ff3c3c88',
-                              display: 'inline-block',
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
+                    {!isMobile && (
+                      <div style={{ marginTop: 6, display: 'flex', gap: 2 }}>
+                        {[...Array(12)].map((_, i) => {
+                          const seed = (Math.abs(coin.change24h) * 7 + i * 3 + pulseIndex) % 10;
+                          const level = 3 + seed;
+                          return (
+                            <span
+                              key={`${coin.address}-spark-${i}`}
+                              style={{
+                                width: 3,
+                                height: level,
+                                borderRadius: 2,
+                                background: coin.change24h >= 0 ? '#00e67688' : '#ff3c3c88',
+                                display: 'inline-block',
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div className="font-mono" style={{
                     color: coin.change24h >= 0 ? '#00e676' : '#ff3c3c',
@@ -915,7 +950,7 @@ export default function Home() {
                   {/* Token info */}
                   <div style={{ flex: 1 }}>
                     <div className="font-mono" style={{ fontSize: '0.6rem', color: '#4a5568', letterSpacing: '2px', marginBottom: 8 }}>
-                      TOKEN ANALYSIS
+                      AI RUG-PULL ANALYSIS
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {result.metrics.logo && (
@@ -996,7 +1031,10 @@ export default function Home() {
                   marginBottom: 12,
                 }}>
                   <div className="font-mono" style={{ fontSize: '0.6rem', color: '#ff7c1e', letterSpacing: '2px', marginBottom: 12 }}>
-                    ◆ AI ANALYST REPORT · GEMINI
+                    ◆ AI ANALYST REPORT · CHATGPT
+                  </div>
+                  <div className="font-mono" style={{ fontSize: '0.6rem', color: '#4a5568', letterSpacing: '1px', marginBottom: 10 }}>
+                    DETECTS PROBABLE RUG-PULL SIGNALS FROM LIVE ONCHAIN DATA
                   </div>
                   <p style={{ fontFamily: 'var(--body)', fontSize: '0.88rem', color: '#c9d1d9', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
                     {result.aiReport}
@@ -1093,7 +1131,7 @@ export default function Home() {
               {/* Footer */}
               <div style={{ textAlign: 'center', marginTop: 20 }}>
                 <div className="font-mono" style={{ fontSize: '0.58rem', color: '#4a5568', letterSpacing: '1.5px', lineHeight: 1.8 }}>
-                  POWERED BY BIRDEYE DATA API · GEMINI AI · NOT FINANCIAL ADVICE<br />
+                  POWERED BY BIRDEYE DATA API · CHATGPT AI · NOT FINANCIAL ADVICE<br />
                   ANALYZED {new Date(result.analyzedAt).toLocaleTimeString()} · ANALYSIS TIME {result.analysisTimeMs ? `${(result.analysisTimeMs / 1000).toFixed(2)}s` : '—'}
                 </div>
               </div>
